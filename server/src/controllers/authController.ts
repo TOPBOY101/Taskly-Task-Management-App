@@ -4,7 +4,7 @@ import User from "../models/userModel";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 
-export const signup = async (
+export const register = async (
   req: Request<{}, {}, SignUpBody>,
   res: Response
 ) => {

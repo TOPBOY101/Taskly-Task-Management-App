@@ -1,108 +1,236 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
+import api from "../utility/api";
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 
 interface Task {
   _id: string;
   title: string;
-  description?: string;
-  deadline?: string;
-  status: string;
+  description: string;
+  state: string;
+  createdAt: string;
 }
 
-const Dashboard: React.FC = () => {
+const Dashboard = () => {
+  const navigate = useNavigate();
+
   const [tasks, setTasks] = useState<Task[]>([]);
-  const [title, setTitle] = useState<string>("");
-  const [description, setDescription] = useState<string>("");
-  const [deadline, setDeadline] = useState<string>("");
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("ongoing");
 
-  const fetchTasks = async () => {
-    const token = localStorage.getItem("token");
-    const res = await axios.get("http://localhost:5000/api/tasks", {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    setTasks(res.data);
+  const fetchTask = async () => {
+    try {
+      const res = await api.get("/task/all-tasks");
+      setTasks(res.data.tasks);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Error fetching tasks.");
+      }
+    }
   };
 
-  const handleAddTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const token = localStorage.getItem("token");
-    await axios.post(
-      "http://localhost:5000/api/tasks",
-      { title, description, deadline },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    setTitle("");
-    setDescription("");
-    setDeadline("");
-    fetchTasks();
+  const handleAddTask = async () => {
+    try {
+      await api.post("/task/add-task", { title, description });
+      setTitle("");
+      setDescription("");
+      await fetchTask();
+      setIsModalOpen(false);
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message || "Could not add task.");
+      }
+    }
   };
 
-  const handleDelete = async (id: string) => {
-    const token = localStorage.getItem("token");
-    await axios.delete(`http://localhost:5000/api/tasks/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    fetchTasks();
+  const markAsCompleted = async (id: string) => {
+    try {
+      await api.put(`/task/update-task/${id}`);
+      fetchTask();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message);
+      }
+    }
+  };
+
+  const deleteTask = async (id: string) => {
+    try {
+      await api.delete(`/task/delete-task/${id}`);
+      fetchTask();
+    } catch (error) {
+      if (axios.isAxiosError(error)) {
+        setError(error.response?.data?.message);
+      }
+    }
+  };
+
+  const logout = () => {
+    localStorage.removeItem("token");
+    navigate("/login");
   };
 
   useEffect(() => {
-    fetchTasks();
-  }, []);
+    if (!localStorage.getItem("token")) {
+      navigate("/login");
+    } else {
+      fetchTask();
+    }
+  }, [navigate]);
 
   return (
-    <div className="p-6 max-w-3xl mx-auto">
-      <h2 className="text-2xl font-bold mb-4">Dashboard</h2>
-      <form onSubmit={handleAddTask} className="space-y-3 mb-6">
-        <input
-          type="text"
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          required
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="text"
-          placeholder="Description"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <input
-          type="date"
-          value={deadline}
-          onChange={(e) => setDeadline(e.target.value)}
-          className="w-full p-2 border rounded"
-        />
-        <button
-          type="submit"
-          className="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600"
-        >
-          Add Task
-        </button>
-      </form>
-
-      <ul className="space-y-3">
-        {tasks.map((task) => (
-          <li
-            key={task._id}
-            className="p-4 border rounded shadow-sm flex justify-between items-center"
+    <div className="flex h-screen bg-black text-white font-sans">
+      {/* Sidebar */}
+      <aside className="w-72 bg-gray-900 shadow-2xl p-8 border-r border-gray-800 rounded-r-3xl">
+        <h1 className="text-4xl font-black text-indigo-400 tracking-wide mb-10">
+          Taskly-TMA
+        </h1>
+        <nav className="space-y-6">
+          <a
+            href="#"
+            className="block text-gray-300 hover:text-indigo-400 font-medium text-lg transition duration-200"
           >
-            <div>
-              <h3 className="font-semibold text-lg">{task.title}</h3>
-              <p className="text-sm text-gray-600">
-                {task.status} | Due: {task.deadline?.substring(0, 10)}
-              </p>
+            📝 Tasks
+          </a>
+        </nav>
+        <p
+          onClick={logout}
+          className="mt-12 text-sm cursor-pointer text-red-400 hover:underline"
+        >
+          🚪 Logout
+        </p>
+      </aside>
+
+      {/* Main Content */}
+      <main className="flex-1 p-12 overflow-y-auto bg-black rounded-l-3xl">
+        <div className="flex justify-between items-center mb-10">
+          <h2 className="text-3xl font-bold text-white">Your Task Board</h2>
+          <button
+            onClick={() => setIsModalOpen(true)}
+            className="bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-md hover:bg-indigo-700 transition duration-200"
+          >
+            + Add Task
+          </button>
+        </div>
+
+        {error && (
+          <p className="text-red-400 mb-6 text-md font-semibold">{error}</p>
+        )}
+
+        {/* Filter Buttons */}
+        <div className="flex gap-4 mb-10">
+          <button
+            onClick={() => setFilter("ongoing")}
+            className={`flex-1 py-3 rounded-xl font-semibold text-white shadow-lg transition ${
+              filter === "ongoing"
+                ? "bg-yellow-500"
+                : "bg-yellow-400 hover:bg-yellow-500"
+            }`}
+          >
+            🟡 Ongoing
+          </button>
+          <button
+            onClick={() => setFilter("Completed")}
+            className={`flex-1 py-3 rounded-xl font-semibold text-white shadow-lg transition ${
+              filter === "Completed"
+                ? "bg-green-600"
+                : "bg-green-500 hover:bg-green-600"
+            }`}
+          >
+            ✅ Completed
+          </button>
+        </div>
+
+        {/* Task List */}
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+          {tasks
+            .filter((task) => task.state === filter)
+            .map((task) => (
+              <div
+                key={task._id}
+                className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 hover:shadow-xl transition-all"
+              >
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-bold text-white mb-1">
+                      {task.title}
+                    </h3>
+                    <p className="text-sm text-gray-300 mb-2">
+                      {task.description}
+                    </p>
+                    <span
+                      className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
+                        task.state === "Completed"
+                          ? "bg-green-100 text-green-900"
+                          : "bg-yellow-100 text-yellow-900"
+                      }`}
+                    >
+                      {task.state}
+                    </span>
+                  </div>
+
+                  <div className="flex flex-col items-end gap-2">
+                    {task.state === "ongoing" && (
+                      <button
+                        onClick={() => markAsCompleted(task._id)}
+                        className="text-sm bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-xl transition"
+                      >
+                        ✅ Complete
+                      </button>
+                    )}
+                    <button
+                      onClick={() => deleteTask(task._id)}
+                      className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-xl transition"
+                    >
+                      🗑 Delete
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+        </div>
+      </main>
+
+      {/* Modal */}
+      {isModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-70 flex justify-center items-center z-50">
+          <div className="bg-black p-8 rounded-2xl w-96 shadow-2xl border border-yellow-600 animate-fade-in">
+            <h3 className="text-2xl font-bold mb-6 text-yellow-400 text-center">
+              New Task
+            </h3>
+            <input
+              type="text"
+              placeholder="Title"
+              className="w-full mb-4 p-3 border border-yellow-700 bg-black text-yellow-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-yellow-500"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+            <textarea
+              placeholder="Description"
+              className="w-full mb-6 p-3 border border-yellow-700 bg-black text-yellow-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-yellow-500"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+            <div className="flex justify-end gap-3">
+              <button
+                onClick={() => setIsModalOpen(false)}
+                className="px-4 py-2 bg-gray-800 text-yellow-100 rounded-lg hover:bg-gray-700 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddTask}
+                className="px-5 py-2 bg-yellow-500 text-black font-semibold rounded-lg hover:bg-yellow-600 transition"
+              >
+                Add
+              </button>
             </div>
-            <button
-              onClick={() => handleDelete(task._id)}
-              className="bg-red-500 text-white px-3 py-1 rounded hover:bg-red-600"
-            >
-              Delete
-            </button>
-          </li>
-        ))}
-      </ul>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
