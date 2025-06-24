@@ -5,8 +5,10 @@ import { useNavigate } from "react-router-dom";
 
 interface Task {
   _id: string;
+
   title: string;
   description: string;
+  deadline?: string;
   state: string;
   createdAt: string;
 }
@@ -18,8 +20,9 @@ const Dashboard = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [deadline, setDeadline] = useState("");
   const [error, setError] = useState("");
-  const [filter, setFilter] = useState("ongoing");
+  const [filter, setFilter] = useState<string | "all">("all");
 
   const fetchTask = async () => {
     try {
@@ -34,9 +37,10 @@ const Dashboard = () => {
 
   const handleAddTask = async () => {
     try {
-      await api.post("/task/add-task", { title, description });
+      await api.post("/task/add-task", { title, description, deadline });
       setTitle("");
       setDescription("");
+      setDeadline("");
       await fetchTask();
       setIsModalOpen(false);
     } catch (error) {
@@ -81,12 +85,17 @@ const Dashboard = () => {
     }
   }, [navigate]);
 
+  const filteredTasks =
+    filter === "all" ? tasks : tasks.filter((task) => task.state === filter);
+  console.log(deadline);
+
   return (
     <div className="flex h-screen bg-black text-white font-sans">
       {/* Sidebar */}
       <aside className="w-72 bg-gray-900 shadow-2xl p-8 border-r border-gray-800 rounded-r-3xl">
-        <h1 className="text-4xl font-black text-indigo-400 tracking-wide mb-10">
-          Taskly-TMA
+        <h1 className="flex items-center gap-3 text-3xl font-black text-yellow-400 tracking-wide mb-10">
+          <img src="/favicon.png" alt="Taskly Logo" className="h-10 w-10" />
+          Taskly
         </h1>
         <nav className="space-y-6">
           <a
@@ -107,7 +116,9 @@ const Dashboard = () => {
       {/* Main Content */}
       <main className="flex-1 p-12 overflow-y-auto bg-black rounded-l-3xl">
         <div className="flex justify-between items-center mb-10">
-          <h2 className="text-3xl font-bold text-white">Your Task Board</h2>
+          <h2 className="text-3xl font-bold text-white hover:text-indigo-400 transition-colors duration-200">
+            Dashboard
+          </h2>
           <button
             onClick={() => setIsModalOpen(true)}
             className="bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-md hover:bg-indigo-700 transition duration-200"
@@ -122,6 +133,14 @@ const Dashboard = () => {
 
         {/* Filter Buttons */}
         <div className="flex gap-4 mb-10">
+          <button
+            onClick={() => setFilter("all")}
+            className={`flex-1 py-3 rounded-xl font-semibold text-white shadow-lg transition ${
+              filter === "all" ? "bg-blue-600" : "bg-blue-500 hover:bg-blue-600"
+            }`}
+          >
+            🔁 All
+          </button>
           <button
             onClick={() => setFilter("ongoing")}
             className={`flex-1 py-3 rounded-xl font-semibold text-white shadow-lg transition ${
@@ -146,51 +165,55 @@ const Dashboard = () => {
 
         {/* Task List */}
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-          {tasks
-            .filter((task) => task.state === filter)
-            .map((task) => (
-              <div
-                key={task._id}
-                className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 hover:shadow-xl transition-all"
-              >
-                <div className="flex justify-between items-start">
-                  <div>
-                    <h3 className="text-xl font-bold text-white mb-1">
-                      {task.title}
-                    </h3>
-                    <p className="text-sm text-gray-300 mb-2">
-                      {task.description}
+          {filteredTasks.map((task) => (
+            <div
+              key={task._id}
+              className="bg-gray-800 p-6 rounded-2xl shadow-lg border border-gray-700 hover:shadow-xl transition-all"
+            >
+              <div className="flex justify-between items-start">
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-1">
+                    {task.title}
+                  </h3>
+                  <p className="text-sm text-gray-300 mb-2">
+                    {task.description}
+                  </p>
+                  {task.deadline && (
+                    <p className="text-xs text-yellow-400 mb-2">
+                      📅 Deadline:{" "}
+                      {new Date(task.deadline).toLocaleDateString()}
                     </p>
-                    <span
-                      className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
-                        task.state === "Completed"
-                          ? "bg-green-100 text-green-900"
-                          : "bg-yellow-100 text-yellow-900"
-                      }`}
-                    >
-                      {task.state}
-                    </span>
-                  </div>
+                  )}
+                  <span
+                    className={`inline-block px-3 py-1 text-xs font-bold rounded-full ${
+                      task.state === "Completed"
+                        ? "bg-green-100 text-green-900"
+                        : "bg-yellow-100 text-yellow-900"
+                    }`}
+                  >
+                    {task.state}
+                  </span>
+                </div>
 
-                  <div className="flex flex-col items-end gap-2">
-                    {task.state === "ongoing" && (
-                      <button
-                        onClick={() => markAsCompleted(task._id)}
-                        className="text-sm bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-xl transition"
-                      >
-                        ✅ Complete
-                      </button>
-                    )}
+                <div className="flex flex-col items-end gap-2">
+                  {task.state === "ongoing" && (
                     <button
-                      onClick={() => deleteTask(task._id)}
-                      className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-xl transition"
+                      onClick={() => markAsCompleted(task._id)}
+                      className="text-sm bg-green-500 hover:bg-green-600 text-white px-4 py-1 rounded-xl transition"
                     >
-                      🗑 Delete
+                      ✅ Complete
                     </button>
-                  </div>
+                  )}
+                  <button
+                    onClick={() => deleteTask(task._id)}
+                    className="text-sm bg-red-500 hover:bg-red-600 text-white px-4 py-1 rounded-xl transition"
+                  >
+                    🗑 Delete
+                  </button>
                 </div>
               </div>
-            ))}
+            </div>
+          ))}
         </div>
       </main>
 
@@ -210,9 +233,16 @@ const Dashboard = () => {
             />
             <textarea
               placeholder="Description"
-              className="w-full mb-6 p-3 border border-yellow-700 bg-black text-yellow-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-yellow-500"
+              className="w-full mb-4 p-3 border border-yellow-700 bg-black text-yellow-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-yellow-500"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
+            />
+            <input
+              type="datetime-local"
+              placeholder="Deadline"
+              className="w-full mb-6 p-3 border border-yellow-700 bg-black text-yellow-100 rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-500 placeholder-yellow-500"
+              value={deadline}
+              onChange={(e) => setDeadline(e.target.value)}
             />
             <div className="flex justify-end gap-3">
               <button

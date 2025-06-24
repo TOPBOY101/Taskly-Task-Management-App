@@ -4,11 +4,11 @@ const Navbar = () => {
   return (
     <nav className="bg-black shadow-lg border-b-2 border-yellow-500">
       <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-        <Link
-          to="/"
-          className="text-2xl font-bold text-yellow-400 hover:text-yellow-300 transition duration-300"
-        >
-          Taskly
+        <Link to="/">
+          <h1 className="flex items-center gap-3 text-3xl font-black text-yellow-400 tracking-wide mb-10 mt-5">
+            <img src="/favicon.png" alt="Taskly Logo" className="h-10 w-10" />
+            Taskly
+          </h1>
         </Link>
 
         <div className="space-x-6 text-sm font-medium">
