@@ -22,6 +22,9 @@ const taskSchema = new Schema(
       enum: ["ongoing", "completed"],
       trim: true,
     },
+    deadline: {
+      type: Date,
+    },
   },
   { timestamps: true }
 );

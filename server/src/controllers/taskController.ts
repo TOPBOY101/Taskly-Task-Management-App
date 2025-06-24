@@ -8,7 +8,8 @@ export const addTask = async (
   res: Response
 ) => {
   try {
-    const { title, description } = req.body;
+    const { title, description, deadline } = req.body;
+
     if (!title || !description) {
       return res.status(400).json({ message: "All fields required" });
     }
@@ -16,6 +17,7 @@ export const addTask = async (
       title,
       description,
       userId: req.userId,
+      deadline,
     });
     res.status(201).json({ message: "Task created successfully" });
   } catch (error) {
