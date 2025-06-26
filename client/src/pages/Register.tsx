@@ -57,6 +57,9 @@ const Register = () => {
 
   return (
     <form onSubmit={handleSubmit}>
+      <div className="bg-white dark:bg-black text-black dark:text-yellow-100">
+        Your dark mode content
+      </div>
       <div className="flex flex-col items-center justify-center px-6 py-8 mx-auto min-h-screen bg-black">
         <div className="w-full bg-gray-900 rounded-lg shadow border border-yellow-400 md:mt-0 sm:max-w-md xl:p-0">
           <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
